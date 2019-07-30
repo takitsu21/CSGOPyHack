@@ -12,6 +12,7 @@ import sys
 import os
 import requests
 
+
 offset_update = "https://raw.githubusercontent.com/frk1/hazedumper/master/csgo.json"
 
 def is_updated(offsets, local_offsets):
@@ -61,7 +62,6 @@ def last_update(timestamp):
 class AimLock(threading.Thread):
     def __init__(self):
         super (AimLock, self).__init__ ()
-
         print("Aimlock enabled... press ² to use it")
     
     def lock(self):
@@ -81,9 +81,7 @@ class AntiFlash(threading.Thread):
 class Wallhack(threading.Thread):
     def __init__(self):
         super (Wallhack, self).__init__ ()
-        self.r = 255
-        self.g = 0
-        self.b = 0
+        self.rgb = (255,0,0)
         print("Wallhack enabled...")
 
     def _wh(self):
@@ -96,18 +94,15 @@ class Wallhack(threading.Thread):
                     entity_id = pm.read_int(entity + m_iTeamNum)
                     entity_glow = pm.read_int(entity + m_iGlowIndex)
                     if is_ennemy(player_id, entity_id):  # wh only on ennemy team
-                        pm.write_float(glow_manager + entity_glow * 0x38 + 0x4, float(self.r))
-                        pm.write_float(glow_manager + entity_glow * 0x38 + 0x8, float(self.g))
-                        pm.write_float(glow_manager + entity_glow * 0x38 + 0xC, float(self.b))
+                        pm.write_float(glow_manager + entity_glow * 0x38 + 0x4, float(self.rgb[0]))
+                        pm.write_float(glow_manager + entity_glow * 0x38 + 0x8, float(self.rgb[1]))
+                        pm.write_float(glow_manager + entity_glow * 0x38 + 0xC, float(self.rgb[2]))
                         pm.write_float(glow_manager + entity_glow * 0x38 + 0x10, float(0.5))  # Alpha
                         pm.write_int(glow_manager + entity_glow * 0x38 + 0x24, 1)
 
 class Trigger(threading.Thread):
     def __init__(self):
         super (Trigger, self).__init__ ()
-
-        thread = Thread(target=self._trigger, args=())
-        thread.start()
         print("Trigger enabled... press ALT to use it")
 
     def _trigger(self):
@@ -125,6 +120,10 @@ class Trigger(threading.Thread):
 def is_ennemy(_player_id, _ennemy_id):
     return _player_id != _ennemy_id
 
+def check_update(old_offset, checker):
+    if is_updated(old_offset, checker):
+        print("offsets are up to date")
+    else: _update(checker)
 
 if __name__ == "__main__":
     pm = pymem.Pymem("csgo.exe")
@@ -132,10 +131,7 @@ if __name__ == "__main__":
     os.system("cls")
 
     player = pm.read_int(client + dwLocalPlayer)
-    if is_updated(offset_update, offsets):
-        print("offsets are up to date!")
-    else:
-        _update(offset_update)
+    check_update(offsets, offset_update)
     input("Press any key to start the script...")
     trig = Trigger()
     wh = Wallhack()
