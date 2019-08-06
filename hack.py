@@ -18,9 +18,8 @@ offset_update = "https://raw.githubusercontent.com/frk1/hazedumper/master/csgo.j
 def is_updated(offsets, local_offsets):
     print("Checking for updates...")
     r = requests.get(offsets)
-    timestamp = json.loads(r.text)
+    timestamp = json.loads(r.content)
     return local_offsets["timestamp"] == timestamp["timestamp"]
-
 
 def _update(offsets):
     print("Downloading...")
@@ -72,7 +71,7 @@ class AntiFlash(threading.Thread):
         super (AntiFlash, self).__init__ ()
         print("Antiflash enabled...")
 
-    def zero_flash(self):
+    def run(self):
         while not QUIT:
             flashed = pm.read_int(player + m_flFlashMaxAlpha)
             if flashed > 0:
@@ -84,10 +83,13 @@ class Wallhack(threading.Thread):
         self.rgb = (255,0,0)
         print("Wallhack enabled...")
 
-    def _wh(self):
+    def run(self):
+        global player_id, entity_id
         glow_manager = pm.read_int(client + dwGlowObjectManager)
+
         while not QUIT:
             for i in range(1,10): # for competitive otherwise should be range(1, 32)
+
                 entity = pm.read_int(client + dwEntityList + i * 0x10)
                 if entity:
                     player_id = int(pm.read_int(player + m_iTeamNum))
@@ -105,14 +107,14 @@ class Trigger(threading.Thread):
         super (Trigger, self).__init__ ()
         print("Trigger enabled... press ALT to use it")
 
-    def _trigger(self):
+    def run(self):
         while not QUIT:
             if keyboard.is_pressed("ALT"):
-                player_id = pm.read_int(player + m_iTeamNum)
-                player_entity_id = pm.read_int(player + m_iCrosshairId)
-                if player_entity_id > 0: # if a player is on the crosshair
-                    entity = pm.read_int(client + dwEntityList + (player_entity_id - 1) * 0x10)
-                    entity_id = pm.read_int(entity + m_iTeamNum)
+                # player_id = pm.read_int(player + m_iTeamNum)
+                on_crossh = pm.read_int(player + m_iCrosshairId)
+                if on_crossh > 0: # if a player is on the crosshair
+                    # entity = pm.read_int(client + dwEntityList + (player_entity_id - 1) * 0x10)
+                    # entity_id = pm.read_int(entity + m_iTeamNum)
                     if is_ennemy(player_id, entity_id):
                         pm.write_int(client + dwForceAttack, 5)
                         pm.write_int(client + dwForceAttack, 4)
@@ -121,7 +123,7 @@ def is_ennemy(_player_id, _ennemy_id):
     return _player_id != _ennemy_id
 
 def check_update(old_offset, checker):
-    if is_updated(old_offset, checker):
+    if is_updated(checker, old_offset):
         print("offsets are up to date")
     else: _update(checker)
 
